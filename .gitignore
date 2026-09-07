@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+*.zip
+media/
+w_export.files/
+w_export.htm
+*.log
+.venv/
+venv/

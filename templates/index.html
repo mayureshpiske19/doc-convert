@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DocConvert — Word / PDF to Markdown & HTML</title>
+<style>
+  :root{
+    --card:rgba(17,25,45,.66); --stroke:#33436b;
+    --accent:#38bdf8; --accent2:#a78bfa; --txt:#eef3fb; --muted:#9fb0cd;
+    --ok:#34d399; --err:#fb7185; --chip:#0e1730;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;min-height:100%}
+  body{
+    font-family:'Segoe UI',system-ui,-apple-system,sans-serif;color:var(--txt);
+    background:
+      radial-gradient(1000px 620px at 8% -8%, #2a3f75 0, transparent 55%),
+      radial-gradient(900px 560px at 105% 4%, #6d3b8f 0, transparent 52%),
+      radial-gradient(760px 520px at 60% 118%, #0e6b7d 0, transparent 55%),
+      linear-gradient(155deg,#0a1024,#111a34 55%,#0c1430);
+    background-attachment:fixed;
+  }
+  .wrap{max-width:900px;margin:0 auto;padding:52px 22px 44px}
+  .brand{display:flex;align-items:center;gap:14px;margin-bottom:6px}
+  .logo{width:48px;height:48px;border-radius:14px;display:grid;place-items:center;
+        background:linear-gradient(135deg,var(--accent),var(--accent2));
+        box-shadow:0 10px 26px rgba(120,120,255,.4);font-size:23px}
+  h1{font-size:31px;font-weight:700;margin:0;letter-spacing:.2px}
+  .tag{color:var(--muted);margin:8px 0 30px;font-size:15px}
+
+  .card{
+    background:var(--card);backdrop-filter:blur(16px);
+    border:1px solid var(--stroke);border-radius:22px;padding:30px;
+    box-shadow:0 24px 70px rgba(0,0,0,.5)
+  }
+
+  /* ---- drop zone (flex column, clean dashed border) ---- */
+  .drop{
+    display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;
+    gap:10px;width:100%;min-height:190px;padding:34px 20px;cursor:pointer;
+    border:2px dashed #47608f;border-radius:16px;background:rgba(10,18,38,.45);
+    transition:border-color .2s, background .2s, transform .12s;
+  }
+  .drop:hover{border-color:var(--accent);background:rgba(10,18,38,.72)}
+  .drop.drag{border-color:var(--accent);background:#0b3350;transform:scale(1.01)}
+  .drop .ic{width:58px;height:58px;border-radius:16px;display:grid;place-items:center;font-size:26px;
+            background:linear-gradient(135deg,rgba(56,189,248,.22),rgba(167,139,250,.22));
+            border:1px solid var(--stroke)}
+  .drop .title{font-size:16px} .drop .title b{color:var(--accent)}
+  .fname{font-size:13.5px;color:var(--muted)} .fname.set{color:var(--ok);font-weight:600}
+
+  .opts{margin-top:26px;display:flex;flex-direction:column;gap:18px}
+  .label{font-size:11.5px;text-transform:uppercase;letter-spacing:1.4px;color:var(--muted);margin-bottom:9px}
+  .seg{display:inline-flex;background:var(--chip);border:1px solid var(--stroke);border-radius:12px;padding:4px;gap:4px}
+  .seg button{background:none;border:0;color:var(--muted);padding:10px 20px;border-radius:9px;cursor:pointer;font-size:14px;font-weight:500;transition:.18s}
+  .seg button.on{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#08243a;box-shadow:0 5px 16px rgba(120,140,255,.45)}
+  .subrow{transition:.25s;opacity:1;max-height:140px;overflow:hidden}
+  .subrow.hide{opacity:0;max-height:0;margin-top:-18px}
+  .hint{color:var(--muted);font-size:12.5px;margin-top:9px}
+
+  .go{
+    margin-top:6px;width:100%;background:linear-gradient(135deg,var(--accent),var(--accent2));
+    color:#08243a;border:0;border-radius:13px;padding:16px;font-weight:700;font-size:16px;cursor:pointer;transition:.18s;
+    box-shadow:0 12px 30px rgba(120,140,255,.4)
+  }
+  .go:hover:not(:disabled){transform:translateY(-1px)}
+  .go:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}
+  .spin{display:none;width:17px;height:17px;border:3px solid rgba(8,36,58,.35);border-top-color:#08243a;border-radius:50%;animation:s 1s linear infinite;vertical-align:-3px;margin-left:10px}
+  @keyframes s{to{transform:rotate(360deg)}}
+
+  .status{margin-top:18px;font-size:14.5px;min-height:20px}
+  .status .ok{color:var(--ok)} .status .err{color:var(--err);white-space:pre-wrap;font-family:ui-monospace,monospace;font-size:12px}
+  .stats{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+  .chip{background:var(--chip);border:1px solid var(--stroke);border-radius:999px;padding:6px 14px;font-size:12.5px;color:var(--muted)}
+  .chip b{color:var(--txt)}
+  a.dl{display:inline-flex;align-items:center;gap:8px;margin-top:16px;background:linear-gradient(135deg,var(--ok),#10b981);color:#04241a;padding:12px 22px;border-radius:12px;text-decoration:none;font-weight:700;box-shadow:0 10px 24px rgba(52,211,153,.35)}
+  .files{margin-top:12px;font-size:12.5px;color:var(--muted);max-height:120px;overflow:auto}
+  .files span{display:inline-block;background:var(--chip);border:1px solid var(--stroke);border-radius:7px;padding:3px 9px;margin:3px 4px 0 0}
+  .prev{margin-top:16px;background:#0a1220;border:1px solid var(--stroke);border-radius:13px;padding:16px;max-height:320px;overflow:auto;white-space:pre-wrap;font-family:ui-monospace,monospace;font-size:12.5px;color:#c6d5ec}
+  .foot{text-align:center;color:var(--muted);font-size:12.5px;margin-top:28px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand">
+    <div class="logo">📄</div>
+    <h1>DocConvert</h1>
+  </div>
+  <div class="tag">Convert <b>Word (.doc / .docx)</b> and <b>PDF</b> to <b>Markdown</b> or <b>HTML</b> — images extracted automatically.</div>
+
+  <div class="card">
+    <input type="file" id="file" accept=".doc,.docx,.pdf" style="display:none">
+    <div class="drop" id="drop">
+      <div class="ic">⬆️</div>
+      <div class="title"><b>Click to choose</b> or drag a file here</div>
+      <div class="fname" id="fname">Supported: .doc · .docx · .pdf</div>
+    </div>
+
+    <div class="opts">
+      <div>
+        <div class="label">Output format</div>
+        <div class="seg" id="fmt">
+          <button data-f="md" class="on">Markdown</button>
+          <button data-f="html">HTML</button>
+        </div>
+      </div>
+
+      <div class="subrow" id="mdmodeWrap">
+        <div class="label">Markdown layout</div>
+        <div class="seg" id="mdmode">
+          <button data-m="single" class="on">Single merged .md</button>
+          <button data-m="split">Section-wise split</button>
+        </div>
+        <div class="hint" id="modeHint">One combined Markdown file for the whole document.</div>
+      </div>
+
+      <button class="go" id="go" disabled>Convert <span class="spin" id="spin"></span></button>
+      <div class="status" id="status"></div>
+      <div id="result"></div>
+    </div>
+  </div>
+
+  <div class="foot">© Microsoft Corporation. All rights reserved.</div>
+</div>
+
+<script>
+let file=null, fmt="md", mode="single";
+const $=id=>document.getElementById(id);
+const drop=$('drop'),inp=$('file'),fname=$('fname'),go=$('go'),spin=$('spin'),
+      status=$('status'),result=$('result'),mdmodeWrap=$('mdmodeWrap'),modeHint=$('modeHint');
+
+drop.onclick=()=>inp.click();
+inp.onchange=e=>setFile(e.target.files[0]);
+drop.ondragover=e=>{e.preventDefault();drop.classList.add('drag')};
+drop.ondragleave=()=>drop.classList.remove('drag');
+drop.ondrop=e=>{e.preventDefault();drop.classList.remove('drag');setFile(e.dataTransfer.files[0])};
+function setFile(f){file=f;fname.textContent=f?('📎 '+f.name):'Supported: .doc · .docx · .pdf';
+  fname.classList.toggle('set',!!f);go.disabled=!f;status.innerHTML='';result.innerHTML='';}
+
+document.querySelectorAll('#fmt button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('#fmt button').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on');fmt=b.dataset.f;
+  mdmodeWrap.classList.toggle('hide',fmt!=='md');
+});
+document.querySelectorAll('#mdmode button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('#mdmode button').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on');mode=b.dataset.m;
+  modeHint.textContent = mode==='split'
+    ? 'One .md per top-level section + an index.md (linked table of contents).'
+    : 'One combined Markdown file for the whole document.';
+});
+
+go.onclick=async()=>{
+  if(!file)return;
+  go.disabled=true;spin.style.display='inline-block';status.innerHTML='';result.innerHTML='';
+  const fd=new FormData();fd.append('file',file);fd.append('format',fmt);fd.append('md_mode',mode);
+  try{
+    const r=await fetch('/convert',{method:'POST',body:fd});
+    const j=await r.json();
+    if(!r.ok||j.error){status.innerHTML='<span class="err">'+(j.error||'Conversion failed')+'</span>';}
+    else{
+      status.innerHTML='<span class="ok">✔ Converted successfully</span>';
+      let chips='<div class="stats">'+
+        '<span class="chip"><b>'+j.chars.toLocaleString()+'</b> chars</span>'+
+        '<span class="chip"><b>'+j.images+'</b> images</span>'+
+        '<span class="chip"><b>'+j.files.length+'</b> output file(s)</span></div>';
+      let files=j.files.length>1?'<div class="files">'+j.files.map(f=>'<span>'+f+'</span>').join('')+'</div>':'';
+      result.innerHTML=chips+
+        '<a class="dl" href="'+j.download+'">⬇ Download ZIP ('+j.outname+')</a>'+files+
+        '<div class="prev">'+j.preview.replace(/</g,'&lt;')+'</div>';
+    }
+  }catch(e){status.innerHTML='<span class="err">'+e+'</span>';}
+  go.disabled=false;spin.style.display='none';
+};
+</script>
+</body>
+</html>
