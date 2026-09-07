@@ -534,7 +534,8 @@ def do_convert():
                 files_written.append(f"{base}.md")
             if os.path.isdir(media_dir):
                 for fn in os.listdir(media_dir):
-                    z.write(os.path.join(media_dir, fn), f"media/{fn}")
+                    if os.path.splitext(fn)[1].lower() in (".png", ".jpg", ".jpeg", ".gif", ".svg"):
+                        z.write(os.path.join(media_dir, fn), f"media/{fn}")
 
         preview = content[:4000]
         return jsonify(ok=True, images=n_img, chars=len(content),
