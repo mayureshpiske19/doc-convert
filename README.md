@@ -14,15 +14,14 @@ Built for Hackathon '26.
   - **HTML** — a single-file replica of the document (images embedded as base64)
 - **Recursive size-based splitting** — in split mode, any section larger than
   **500 lines or 40 KB** is automatically split further by its own sub-headings,
-  recursively, so no single file is unwieldy. Files are named hierarchically
-  (`07-hardware-description.md`, `07-01-ciu.md`, …).
+  recursively, so no single file is unwieldy. Files are named hierarchically.
 - **LLM-friendly output** (great for RAG / feeding to an LLM):
   - **YAML front-matter + breadcrumb** on every file (`source`, `document`,
     `section`, `section_path`) so each chunk is self-locating
   - **`index.json` manifest** — machine-readable list of files, titles,
     breadcrumbs, sizes and the images each references
-  - **Figure captions folded into image alt-text** (`![Figure 2 …](media/fig002.jpg)`)
-    so diagrams/waveforms are self-describing to a text-only LLM
+  - **Figure captions folded into image alt-text** so diagrams/waveforms are
+    self-describing to a text-only LLM
 - **Image extraction** — every figure / diagram / waveform is pulled into a
   `media/` folder and linked inline
 - **Clean, LLM-ready Markdown** — converts block-by-block via BeautifulSoup/lxml so
