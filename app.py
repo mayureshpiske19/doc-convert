@@ -37,6 +37,8 @@ def _clean_md(t):
                       ("\u00e2\u20ac\u009c", '"'), ("\u00e2\u20ac\u009d", '"'),
                       ("\u00e2\u20ac\u02dc", "'"), ("\u00e2\u20ac\u201d", "--")]:
         t = t.replace(bad, good)
+    # strip any residual bookmark/anchor tags (Word <a name>/<a id> remnants)
+    t = re.sub(r"</?a\b[^>]*>", "", t, flags=re.I)
     # SAFE strikethrough removal: keep the text, drop only the markers, same-line, bounded
     # (never span lines - avoids deleting large content blocks)
     t = re.sub(r"~~([^\n]{0,200}?)~~", r"\1", t)
@@ -146,8 +148,11 @@ def _normalize_word_html(raw):
     for tag in soup(["style", "script"]):
         tag.decompose()
     for a in soup.find_all("a"):
-        if a.get("name") or a.get("href", "").startswith("#"):
-            a.unwrap()                                   # keep text, drop the anchor/link
+        href = a.get("href", "")
+        # keep only real external links; unwrap every bookmark/TOC/in-page anchor
+        # (Word emits these as <a name=…>, <a id=…>, href="#…", or href-less)
+        if not href.lower().startswith(("http://", "https://", "mailto:", "ftp://")):
+            a.unwrap()                                   # keep text, drop the anchor
     for d in soup.find_all("div"):
         d.unwrap()                                       # flatten heading wrappers
     for t in list(soup.find_all(string=True)):
@@ -412,7 +417,8 @@ def _cut_at_level(text, level):
     for i, m in enumerate(ms):
         s = m.start()
         e = ms[i + 1].start() if i + 1 < len(ms) else len(text)
-        secs.append((m.group(1).strip(), text[s:e].strip() + "\n"))
+        title = re.sub(r"<[^>]+>", "", m.group(1)).strip()   # defensively drop any stray HTML tags
+        secs.append((title, text[s:e].strip() + "\n"))
     return pre, secs
 
 def _shallowest_below(text, level):
